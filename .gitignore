@@ -5,7 +5,6 @@ __pycache__/
 *.swp
 *.tmp
 tmp
-*.db
-*.xlsx
-*.xls
+data/*.db
+raporlar/*.xlsx
 *.ipynb
