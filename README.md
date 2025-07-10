@@ -2,9 +2,9 @@
 Anadolu Lisesi Nöbetçi Öğretmen Ders Doldurma programı
 
 *****************
-Verileri e-okul
-    --ders programı
-        -->sınıf programı
-        -->excel dökümünden
+Verileri e-okul\n
+    --ders programı\n
+        -->sınıf programı\n
+        -->excel dökümünden\n
 
 alacağız
