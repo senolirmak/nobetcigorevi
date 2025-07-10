@@ -4,5 +4,7 @@ __pycache__/
 .spyproject/
 *.swp
 *.tmp
+data/*.db
+raporlar/*.xlsx
 tmp
 *.ipynb
