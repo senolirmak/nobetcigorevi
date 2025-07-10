@@ -1,4 +1,4 @@
-# nobetcigorevi
+# Nöetçi Öğretmen Ders Doldurma Görevi
 Anadolu Lisesi Nöbetçi Öğretmen Ders Doldurma programı
 
 *****************
