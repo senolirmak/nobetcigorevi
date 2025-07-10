@@ -5,6 +5,4 @@ __pycache__/
 *.swp
 *.tmp
 tmp
-data/*.db
-raporlar/*.xlsx
 *.ipynb
