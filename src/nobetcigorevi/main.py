@@ -12,7 +12,7 @@ from nobetcigorevi.views.main_window import NobetSistemi
 from nobetcigorevi.db.database import engine
 from nobetcigorevi.db.models import Base
 
-# Tabloları oluştur (sadece bir kere çalıştırılmalı)
+# Tabloları oluştur(sadece bir kere çalıştırılmalı)
 Base.metadata.create_all(bind=engine)
 
 def main():
