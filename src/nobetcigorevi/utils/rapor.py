@@ -11,7 +11,7 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 from collections import defaultdict
 from PyQt5.QtCore import QDateTime
-from nobet.utils.database_util import TeacherManager
+from nobetcigorevi.utils.database_util import TeacherManager
 
 def create_excel_report(sonuc=None):
     # Create new workbook
@@ -23,7 +23,7 @@ def create_excel_report(sonuc=None):
     # Get current date in Turkish format
     tarih = QDateTime.currentDateTime().toString("dddd - dd.MM.yyyy")
     file_tarih_saat = QDateTime.currentDateTime().toString("ddMMyyyyHHmm")
-    file_path = "./nobet/raporlar/"
+    file_path = "./nobetcigorevi/raporlar/"
     output_filename = f"{file_path}Rapor_{file_tarih_saat}.xlsx"
 
     sonuc['assignments'] = sorted(sonuc['assignments'], key=lambda x: (x['teacher_id'], x['hour']))

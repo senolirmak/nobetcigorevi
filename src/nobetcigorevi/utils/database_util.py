@@ -6,11 +6,11 @@ Created on Wed May 14 21:38:07 2025
 @author: senolirmak
 """
 
-from nobet.db.models import (NobetGorevi, NobetOgretmen,
+from nobetcigorevi.db.models import (NobetGorevi, NobetOgretmen,
                              NobetDersProgrami, NobetGecmisi, NobetAtanamayan)
 from sqlalchemy import select, and_, exists
 from contextlib import contextmanager
-from nobet.db.database import SessionLocal
+from nobetcigorevi.db.database import SessionLocal
 from datetime import date, datetime
 from typing import Dict, Optional
 

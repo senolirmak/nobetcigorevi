@@ -8,9 +8,9 @@ Created on Sun May  4 14:48:51 2025
 
 import sys
 from PyQt5.QtWidgets import QApplication
-from nobet.views.main_window import NobetSistemi
-from nobet.db.database import engine
-from nobet.db.models import Base
+from nobetcigorevi.views.main_window import NobetSistemi
+from nobetcigorevi.db.database import engine
+from nobetcigorevi.db.models import Base
 
 # Tabloları oluştur (sadece bir kere çalıştırılmalı)
 Base.metadata.create_all(bind=engine)

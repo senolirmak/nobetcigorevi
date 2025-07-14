@@ -22,18 +22,18 @@ from PyQt5.QtCore import Qt, QDate, pyqtSignal
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QBrush
 from PyQt5.uic import loadUi
 
-from nobet.utils.DagitimMotoru import AdvancedNobetDagitim
-from nobet.utils.rapor import create_excel_report
-from nobet.utils.database_util import TeacherManager
-from nobet.utils.tablemanager import TableManager, DataSelectionDialog
-from nobet.utils.pencere_fonksiyon import PencereFonksiyon
-from nobet.utils.nobetcimodel import TeacherScheduleModel
+from nobetcigorevi.utils.DagitimMotoru import AdvancedNobetDagitim
+from nobetcigorevi.utils.rapor import create_excel_report
+from nobetcigorevi.utils.database_util import TeacherManager
+from nobetcigorevi.utils.tablemanager import TableManager, DataSelectionDialog
+from nobetcigorevi.utils.pencere_fonksiyon import PencereFonksiyon
+from nobetcigorevi.utils.nobetcimodel import TeacherScheduleModel
 
 class NobetSistemi(QMainWindow):
     data_updated = pyqtSignal(list)  # Veri değiştiğinde emit edilecek sinyal
     def __init__(self):
         super(NobetSistemi, self).__init__()
-        loadUi('./ui/main_gui.ui', self)
+        loadUi('nobetcigorevi/ui/main_gui.ui', self)
         self.change_stack=None
         
         self.data = TeacherManager()

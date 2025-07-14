@@ -9,7 +9,7 @@ Created on Thu Jun  5 22:44:13 2025
 from PyQt5.QtWidgets import QInputDialog
 from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
 from PyQt5.QtGui import QColor, QBrush
-from nobet.utils.database_util import TeacherManager
+from nobetcigorevi.utils.database_util import TeacherManager
 
 class TeacherScheduleModel(QAbstractTableModel):
     def __init__(self, data=None, teacher_db=None):

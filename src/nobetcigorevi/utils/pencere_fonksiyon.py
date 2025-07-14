@@ -11,7 +11,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import  QColor, QBrush
 
 import traceback  # Bu satırı dosyanın en üstündeki import bölümüne ekleyin
-from nobet.utils.database_util import TeacherManager
+from nobetcigorevi.utils.database_util import TeacherManager
 
 class PencereFonksiyon:
     def __init__(self):

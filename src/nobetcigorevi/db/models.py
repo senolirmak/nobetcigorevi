@@ -11,7 +11,7 @@ Created on Sat May  3 22:03:50 2025
 from sqlalchemy import (Column, Integer, String, Boolean, Date,
                         Time, ForeignKey, Float, DateTime)
 from sqlalchemy.orm import relationship
-from nobet.db.database import Base
+from nobetcigorevi.db.database import Base
 
 class BaseModel(Base):
     __abstract__ = True
