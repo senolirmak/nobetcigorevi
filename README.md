@@ -7,11 +7,12 @@ Okul Haftalık Ders Programını
 Verileri e-okul
     --ders programı
         -->sınıf programı
-        -->excel dökümünden
+        -->excel dökümünden  
 
-raporlardan alalım(OOK11002_R01_XXXX.xlsx)
-XXX:raporun AyGun bilgisi
-nobetciler.xlsx dosyası;
+raporlardan alalım(OOK11002_R01_XXXX.xlsx)  
+XXX:raporun AyGun bilgisi  
+nobetciler.xlsx dosyası;  
+
 
 | PAZARTESİ  | SALI         | ÇARSAMBA   | PERŞEMBE         | CUMA          | Yer          |
 |------------|--------------|------------|------------------|---------------|--------------|
