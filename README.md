@@ -12,9 +12,13 @@ Verileri e-okul
 OOK11002_R01_XXXX.xlsx raporlardan alalım
 XXX:raporun AyGun bilgisi
 nobetciler.xlsx dosyası;
-PAZARTESİ|SALI |ÇARSAMBA|PERŞEMBE|CUMA|Yer
-Şenol    |Ahmet| Mehmet |  Ali   |Veli|1.Kat Karidor
-.....   
+
+| PAZARTESİ  | SALI         | ÇARSAMBA   | PERŞEMBE         | CUMA          |
+|------------|--------------|------------|------------------|---------------|
+| Şenol      | Ahmet        | Ali        |Veli              |1.Kat Koridor  |
+| Ayşe       | Kemal        | Şule       |Kaya              |Giriş          |
+.....
+ 
 formatında,
 personel.xlsx dosyası basitçe; 
 gorev    |adisoyadi    |brans
