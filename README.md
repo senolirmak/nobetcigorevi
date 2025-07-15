@@ -10,7 +10,9 @@ Verileri e-okul
         -->excel dökümünden  
 
 raporlardan alalım(OOK11002_R01_XXXX.xlsx)  
-XXX:raporun AyGun bilgisi  
+XXX:raporun AyGun bilgisi 
+*Raporun ilk 6 satırını silelim(Başlık Bilgisi)  
+
 nobetciler.xlsx dosyası;  
 
 
