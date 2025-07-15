@@ -9,24 +9,27 @@ Verileri e-okul
         -->sınıf programı
         -->excel dökümünden
 
-OOK11002_R01_XXXX.xlsx raporlardan alalım
+raporlardan alalım(OOK11002_R01_XXXX.xlsx)
 XXX:raporun AyGun bilgisi
 nobetciler.xlsx dosyası;
 
-| PAZARTESİ  | SALI         | ÇARSAMBA   | PERŞEMBE         | CUMA          |
-|------------|--------------|------------|------------------|---------------|
-| Şenol      | Ahmet        | Ali        |Veli              |1.Kat Koridor  |
-| Ayşe       | Kemal        | Şule       |Kaya              |Giriş          |
+| PAZARTESİ  | SALI         | ÇARSAMBA   | PERŞEMBE         | CUMA          | Yer          |
+|------------|--------------|------------|------------------|---------------|--------------|
+| Şenol      | Ahmet        | Ali        |Veli              | Demet         |1.Kat Koridor |
+| Ayşe       | Kemal        | Şule       |Kaya              | Çetin         |Giriş         |
 .....
  
 formatında,
+******************
 personel.xlsx dosyası basitçe; 
-gorev    |adisoyadi    |brans
-Öğretmen    |Ahmet Cemal| Matematik
-Müdür    |Hakan Hakan    | Fizik
-Müdür Yardımcısı|Kemal Kemal| Beden Eğitimi
-Görevlendirme|Ayşe Ayşecik| Biyoloji
-Ücretli Öğretmen|Hasan Kuru| Kimya
+
+| gorev            | adisoyadi         | brans           |
+|------------------|-------------------|-----------------|
+| Öğretmen         | Ahmet             | Matematik       |
+| Müdür            | Hakan Haktan      | Kimya           |
+| Müdür Yardımcısı | Kemal Kum         | Beden Eğitimi   |
+| Görevlendirme    | Ayşe Ayşecik      | Biyoloji        |
+| Ücretli Öğretmen | Hasan Kuru        | Fizik           |
 .....
 
 formatında,
