@@ -4,15 +4,15 @@ Anadolu Lisesi Nöbetçi Öğretmen Ders Doldurma programı
 
 *****************
 Okul Haftalık Ders Programını
-Verileri e-okul
-    --ders programı
-        -->sınıf programı
-        -->excel dökümünden  
-
-raporlardan alalım(OOK11002_R01_XXXX.xlsx)  
-XXX:raporun AyGun bilgisi 
-*Raporun ilk 6 satırını silelim(Başlık Bilgisi)  
-
+Verileri e-okul<br>
+    -->ders programı<br>
+        -->sınıf programı<br>
+        -->excel dökümünden<br>  
+<br>
+raporlardan alalım(OOK11002_R01_XXXX.xlsx)<br>  
+XXX:raporun AyGun bilgisi<br>
+*Raporun ilk 6 satırını silelim(Başlık Bilgisi)<br> 
+<br>
 nobetciler.xlsx dosyası;  
 
 
