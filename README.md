@@ -26,13 +26,13 @@ formatında,
 ******************
 personel.xlsx dosyası basitçe; 
 
-| gorev            | adisoyadi         | brans           |
-|------------------|-------------------|-----------------|
-| Öğretmen         | Ahmet             | Matematik       |
-| Müdür            | Hakan Haktan      | Kimya           |
-| Müdür Yardımcısı | Kemal Kum         | Beden Eğitimi   |
-| Görevlendirme    | Ayşe Ayşecik      | Biyoloji        |
-| Ücretli Öğretmen | Hasan Kuru        | Fizik           |
+| gorev            | kimlikno     |adisoyadi          | brans           |
+|------------------|--------------|-------------------|-----------------|
+| Öğretmen         | 99000000001  | Ahmet             | Matematik       |
+| Müdür            | 99000000002  | Hakan Haktan      | Kimya           |
+| Müdür Yardımcısı | 99000000003  | Kemal Kum         | Beden Eğitimi   |
+| Görevlendirme    | 99000000004  | Ayşe Ayşecik      | Biyoloji        |
+| Ücretli Öğretmen | 99000000005  | Hasan Kuru        | Fizik           |
 .....
 
 formatında,
