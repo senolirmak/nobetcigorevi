@@ -17,6 +17,18 @@ class BaseModel(Base):
     __abstract__ = True
     id = Column(Integer, primary_key=True, autoincrement=True)
 
+class NobetPersonel(BaseModel):
+    __tablename__ = 'nobet_personel'
+    
+    adi_soyadi = Column(String(100), nullable=False)
+    brans = Column(String(50), nullable=False)
+    kimlikno = Column(Integer, nullable=False, unique=True)
+    gorev_tipi = Column(String(50))
+    
+    # Relationships
+    #ogretmen = relationship("NobetOgretmen", back_populates="kimlikno")
+
+
 class NobetOgretmen(BaseModel):
     __tablename__ = 'nobet_ogretmen'
     
@@ -32,6 +44,7 @@ class NobetOgretmen(BaseModel):
     devamsizliklar = relationship("Devamsizlik", back_populates="ogretmen")
     istatistikler = relationship("NobetIstatistik", back_populates="ogretmen")
     atanamayan = relationship("NobetAtanamayan", back_populates="ogretmen")
+    #personel = relationship("NobetPersonel", back_populates="ogretmen")
 
 class NobetDersProgrami(BaseModel):
     __tablename__ = 'nobet_dersprogrami'

@@ -205,7 +205,6 @@ class EOkulVeriIsleyici:
                  nobetci_listesi='nobetcigorevi/tmp/hazirlik/hz_duzenlenmis_nobet.xlsx'):
         
         self.parse_program()
-        #self.cevir_gunler()
         self.ekle_ders_saati()
         self.dagit_siniflar()
         self.personel()
