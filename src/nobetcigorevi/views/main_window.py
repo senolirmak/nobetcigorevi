@@ -420,7 +420,7 @@ class NobetSistemi(QMainWindow):
             # Yeni bir QListWidgetItem oluştur
             item = QListWidgetItem(f"{ogretmen.adi_soyadi} - ({nobet_gorevi.nobet_yeri})")
             # Öğretmen ID'sini sakla (Qt.UserRole olarak)
-            item.setData(Qt.UserRole, nobet_gorevi.nobetci_ogretmen_id)
+            item.setData(Qt.UserRole, nobet_gorevi.ogretmen_id)#item.setData(Qt.UserRole, nobet_gorevi.nobetci_ogretmen_id)
             # Listeye ekle
             self.nobetci_listbox.addItem(item)
                 

@@ -41,7 +41,7 @@ class DatabaseManager:
         with self.get_db_session() as session:
             stmt = select(NobetDersProgrami).where(
                 (NobetDersProgrami.gun == day) &
-                (NobetDersProgrami.ders_ogretmeni_id == teacher_id)
+                (NobetDersProgrami.ogretmen_id == teacher_id)
             )
             programs = session.execute(stmt).scalars().all()
             return {"ogretmen_id":teacher_id,'dersleri':{program.ders_saati: program.subeadi for program in programs}}
@@ -52,7 +52,7 @@ class DatabaseManager:
             stmt = select(NobetOgretmen).where(
                 exists().where(
                     and_(
-                        NobetDersProgrami.ders_ogretmeni_id == NobetOgretmen.id,
+                        NobetDersProgrami.ogretmen_id == NobetOgretmen.id,
                         NobetDersProgrami.gun == day
                     )
                 )
@@ -63,9 +63,11 @@ class DatabaseManager:
     def get_duty_teachers(self, day):
         """Get teachers assigned to duty for a specific day"""
         with self.get_db_session() as session:
-            stmt = select(NobetGorevi, NobetOgretmen).join(
-                NobetOgretmen, NobetGorevi.nobetci_ogretmen_id == NobetOgretmen.id
-            ).where(NobetGorevi.nobet_gun == day)
+            stmt = (
+                select(NobetGorevi, NobetOgretmen)
+                .join(NobetOgretmen, NobetGorevi.ogretmen_id == NobetOgretmen.id)
+                .where(NobetGorevi.nobet_gun == day)
+            )
             results = session.execute(stmt).all()
             return [(nobet_gorevi, ogretmen) for nobet_gorevi, ogretmen in results]
     
@@ -204,11 +206,22 @@ class TeacherManager(DatabaseManager):
         status = self.save_results_NobetAtanamayan(sonuc)
         return status
 
-class EOkulVeriAktar(DatabaseManager):
+class EOkulVeriAktar:
     def __init__(self):
-        super().__init__()
+        # Veritabanı şeması yoksa otomatik oluştur
         Base.metadata.create_all(bind=engine)
-    
+
+    @contextmanager
+    def get_db_session(self):
+        session = SessionLocal()
+        try:
+            yield session
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     def insert_or_update(self, session, model_class, filter_by_dict, update_data):
         obj = session.query(model_class).filter_by(**filter_by_dict).first()
         if obj:
@@ -219,7 +232,7 @@ class EOkulVeriAktar(DatabaseManager):
             obj = model_class(**{**filter_by_dict, **update_data})
             session.add(obj)
             return 'inserted'
-            
+
     def parse_time(self, t):
         if isinstance(t, str):
             return datetime.strptime(t, "%H:%M").time()
@@ -228,203 +241,118 @@ class EOkulVeriAktar(DatabaseManager):
         elif isinstance(t, datetime):
             return t.time()
         return t  # zaten time objesi
-    
+
+    # ------------------ PERSONEL ------------------
     def save_yeni_veri_NobetPersonel(self, personel_df):
-        status = {
-            "inserted": 0,
-            "updated": 0,
-            "errors": 0,
-            "status": "success",
-            "message": ""
-        }
-    
+        status = {"inserted": 0, "updated": 0, "errors": 0, "status": "success", "message": ""}
         required_columns = ['adisoyadi', 'brans', 'kimlikno', 'gorev']
         missing = [col for col in required_columns if col not in personel_df.columns]
         if missing:
-            return {
-                "status": "error",
-                "message": f"Eksik sütun(lar): {', '.join(missing)}",
-                "inserted": 0,
-                "updated": 0,
-                "errors": 0
-            }
-    
+            return {"status": "error", "message": f"Eksik sütun(lar): {', '.join(missing)}", **status}
+
         personel_df = personel_df.dropna(subset=['adisoyadi', 'brans', 'kimlikno'])
-    
         try:
             with self.get_db_session() as session:
                 for _, row in personel_df.iterrows():
                     try:
                         result = self.insert_or_update(
-                            session,
-                            NobetPersonel,
-                            {"kimlikno": int(row["kimlikno"])},
-                            {
-                                "adi_soyadi": row["adisoyadi"],
-                                "brans": row["brans"],
-                                "gorev_tipi": row["gorev"]
-                            }
+                            session, NobetPersonel,
+                            {"kimlikno": str(row["kimlikno"])},
+                            {"adi_soyadi": row["adisoyadi"], "brans": row["brans"], "gorev_tipi": row["gorev"]}
                         )
                         status[result] += 1
-    
-                    except Exception as row_error:
+                    except Exception:
                         status["errors"] += 1
-                        continue  # satır hatası varsa devam
-    
                 session.commit()
-    
-            status["message"] = (
-                f"Kayıt tamamlandı. {status['inserted']} yeni kayıt eklendi, "
-                f"{status['updated']} kayıt güncellendi, {status['errors']} satırda hata oluştu."
-            )
-    
+            status["message"] = f"{status['inserted']} eklendi, {status['updated']} güncellendi, {status['errors']} hata."
         except Exception as e:
-            status.update({
-                "status": "error",
-                "message": f"Veritabanı hatası: {str(e)}"
-            })
-    
+            status.update({"status": "error", "message": f"Veritabanı hatası: {str(e)}"})
         return status
 
+    # ------------------ ÖĞRETMEN ------------------
     def save_yeni_veri_NobetOgretmen(self, personel_df):
-        status = {
-            "inserted": 0,
-            "updated": 0,
-            "errors": 0,
-            "status": "success",
-            "message": ""
-        }
-    
+        status = {"inserted": 0, "updated": 0, "errors": 0, "status": "success", "message": ""}
         required_columns = ['adi_soyadi', 'brans', 'nobeti_var', 'gorev_tipi']
         missing = [col for col in required_columns if col not in personel_df.columns]
         if missing:
-            return {
-                "status": "error",
-                "message": f"Eksik sütun(lar): {', '.join(missing)}",
-                "inserted": 0,
-                "updated": 0,
-                "errors": 0
-            }
-    
+            return {"status": "error", "message": f"Eksik sütun(lar): {', '.join(missing)}", **status}
+
         personel_df = personel_df.dropna(subset=['adi_soyadi', 'brans', 'nobeti_var'])
-    
         try:
             with self.get_db_session() as session:
                 for _, row in personel_df.iterrows():
                     try:
                         result = self.insert_or_update(
-                            session,
-                            NobetOgretmen,
-                            {"adi_soyadi": row["adi_soyadi"],
-                             "brans": row["brans"]
-                             },
+                            session, NobetOgretmen,
+                            {"adi_soyadi": row["adi_soyadi"], "brans": row["brans"]},
                             {
                                 "adi_soyadi": row["adi_soyadi"],
                                 "brans": row["brans"],
-                                'nobeti_var': row['nobeti_var'],
+                                "nobeti_var": bool(row["nobeti_var"]),
                                 "gorev_tipi": row["gorev_tipi"]
                             }
                         )
                         status[result] += 1
-
-                    except Exception as row_error:
+                    except Exception:
                         status["errors"] += 1
-                        continue  # satır hatası varsa devam
-    
                 session.commit()
-    
-            status["message"] = (
-                f"Kayıt tamamlandı. {status['inserted']} yeni kayıt eklendi, "
-                f"{status['updated']} kayıt güncellendi, {status['errors']} satırda hata oluştu."
-            )
-    
+            status["message"] = f"{status['inserted']} eklendi, {status['updated']} güncellendi, {status['errors']} hata."
         except Exception as e:
-            status.update({
-                "status": "error",
-                "message": f"Veritabanı hatası: {str(e)}"
-            })
-    
+            status.update({"status": "error", "message": f"Veritabanı hatası: {str(e)}"})
         return status
 
+    # ------------------ NÖBET GÖREVİ ------------------
     def save_yeni_veri_NobetGorevi(self, nobet_df):
         nobet_df = nobet_df.dropna(subset=['nobetci'])
-        status = {
-            "record_count": 0,
-            "status": "success",
-            "message": ""
-        }
+        status = {"record_count": 0, "status": "success", "message": ""}
         try:
             with self.get_db_session() as session:
-                # Save assigned substitutions
                 for _, row in nobet_df.iterrows():
-                    # Öğretmeni bul
                     ogretmen = session.query(NobetOgretmen).filter_by(adi_soyadi=row['nobetci']).first()
-                    if ogretmen is not None:
+                    if ogretmen:
                         nobet = NobetGorevi(
                             nobet_gun=row['nobet_gun'],
                             nobet_yeri=row['nobet_yeri'],
-                            nobetci_ogretmen_id=ogretmen.id,
+                            ogretmen_id=ogretmen.id,
                             uygulama_tarihi=pd.to_datetime(row['uygulama_tarihi']).date(),
                         )
                         session.add(nobet)
                         status["record_count"] += 1
                     else:
-                        print(f"Uyarı: {row['nobetci']} veritabanında bulunamadı.")
-                    
-        
+                        print(f"⚠️ {row['nobetci']} veritabanında bulunamadı.")
                 session.commit()
-                status["message"] = (f"Kayıt Başarılı {status['record_count']} tane Nöbetçi kayıt edildi")
-                
+                status["message"] = f"{status['record_count']} nöbet kaydı eklendi."
         except Exception as e:
-            status.update({
-                "status": "error",
-                "message": f"Database error: {str(e)}"
-            })
-            # Log the error here if needed
-        
+            status.update({"status": "error", "message": f"Database error: {str(e)}"})
         return status
 
+    # ------------------ DERS PROGRAMI ------------------
     def save_yeni_veri_NobetDersProgrami(self, program_df):
         program_df = program_df.dropna(subset=['ders_ogretmeni'])
-        status = {
-            "record_count": 0,
-            "status": "success",
-            "message": ""
-        }
+        status = {"record_count": 0, "status": "success", "message": ""}
         try:
             with self.get_db_session() as session:
-                # Save assigned substitutions
                 for _, row in program_df.iterrows():
-                    # Öğretmeni bul
                     ogretmen = session.query(NobetOgretmen).filter_by(adi_soyadi=row['ders_ogretmeni']).first()
-                    if ogretmen is not None:
+                    if ogretmen:
                         program = NobetDersProgrami(
                             gun=row['gun'],
-                            giris_saat = self.parse_time(row['giris_saat']),
-                            cikis_saat = self.parse_time(row['cikis_saat']),
-                            ders_adi =row['ders_adi'],
+                            giris_saat=self.parse_time(row['giris_saat']),
+                            cikis_saat=self.parse_time(row['cikis_saat']),
+                            ders_adi=row['ders_adi'],
                             sinif=row['sinif'],
                             sube=row['sube'],
-                            subeadi=row['subeadi'],
-                            ders_saati=row['ders_saati'],
-                            ders_saati_adi=row['ders_saati_adi'],
+                            subeadi = row['subeadi'],
+                            ders_saati=int(row['ders_saati']),
                             uygulama_tarihi=pd.to_datetime(row['uygulama_tarihi']).date(),
-                            ders_ogretmeni_id=ogretmen.id
+                            ogretmen_id=ogretmen.id  # ✅ artık doğru sütun
                         )
                         session.add(program)
                         status["record_count"] += 1
                     else:
-                        print(f"Uyarı: {row['ders_ogretmeni']} veritabanında bulunamadı.")
-                    
-        
+                        print(f"⚠️ {row['ders_ogretmeni']} veritabanında bulunamadı.")
                 session.commit()
-                status["message"] = (f"Kayıt Başarılı {status['record_count']} tane ders dağılımı kayıt edildi")
-                
+                status["message"] = f"{status['record_count']} ders programı eklendi."
         except Exception as e:
-            status.update({
-                "status": "error",
-                "message": f"Database error: {str(e)}"
-            })
-            # Log the error here if needed
-        
+            status.update({"status": "error", "message": f"Database error: {str(e)}"})
         return status

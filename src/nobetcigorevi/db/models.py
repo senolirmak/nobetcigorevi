@@ -1,129 +1,120 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat May  3 22:03:50 2025
-
-@author: senolirmak
+SQLAlchemy ORM modelleri - Nöbetçi Görevi Sistemi
+@author: Ş.
 """
 
-# models.py
-
-from sqlalchemy import (Column, Integer, String, Boolean, Date,
-                        Time, ForeignKey, Float, DateTime)
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Time
 from sqlalchemy.orm import relationship
+from datetime import datetime
 from nobetcigorevi.db.database import Base
+
 
 class BaseModel(Base):
     __abstract__ = True
     id = Column(Integer, primary_key=True, autoincrement=True)
 
+
 class NobetPersonel(BaseModel):
     __tablename__ = 'nobet_personel'
-    
+
     adi_soyadi = Column(String(100), nullable=False)
     brans = Column(String(50), nullable=False)
-    kimlikno = Column(Integer, nullable=False, unique=True)
+    kimlikno = Column(String(11), nullable=False, unique=True)
     gorev_tipi = Column(String(50))
-    
-    # Relationships
-    #ogretmen = relationship("NobetOgretmen", back_populates="kimlikno")
 
 
 class NobetOgretmen(BaseModel):
-    __tablename__ = 'nobet_ogretmen'
-    
+    __tablename__ = "nobet_ogretmen"
+
     adi_soyadi = Column(String(100), nullable=False, unique=True)
     brans = Column(String(50), nullable=False)
-    nobeti_var = Column(Boolean, nullable=False)
+    nobeti_var = Column(Boolean, default=True)
     gorev_tipi = Column(String(50))
-    
-    # Relationships
-    dersler = relationship("NobetDersProgrami", back_populates="ogretmen")
-    nobetler = relationship("NobetGorevi", back_populates="ogretmen")
-    gecmis = relationship("NobetGecmisi", back_populates="ogretmen")
-    devamsizliklar = relationship("Devamsizlik", back_populates="ogretmen")
-    istatistikler = relationship("NobetIstatistik", back_populates="ogretmen")
-    atanamayan = relationship("NobetAtanamayan", back_populates="ogretmen")
-    #personel = relationship("NobetPersonel", back_populates="ogretmen")
+
+    dersler = relationship("NobetDersProgrami", back_populates="ogretmen", cascade="all, delete-orphan")
+    nobetler = relationship("NobetGorevi", back_populates="ogretmen", cascade="all, delete-orphan")
+    devamsizliklar = relationship("Devamsizlik", back_populates="ogretmen", cascade="all, delete-orphan")
+    istatistikler = relationship("NobetIstatistik", back_populates="ogretmen", cascade="all, delete-orphan", uselist=False)
+    atanamayan = relationship("NobetAtanamayan", back_populates="ogretmen", cascade="all, delete-orphan")
+    gecmis = relationship("NobetGecmisi", back_populates="ogretmen")  # cascade kaldırıldı
+
 
 class NobetDersProgrami(BaseModel):
-    __tablename__ = 'nobet_dersprogrami'
-    
+    __tablename__ = "nobet_dersprogrami"
+
     gun = Column(String(10), nullable=False)
     giris_saat = Column(Time, nullable=False)
     cikis_saat = Column(Time, nullable=False)
     ders_adi = Column(String(100), nullable=False)
-    sinif = Column(Integer, nullable=False)
-    sube = Column(String(5), nullable=False)
+    sinif = Column(String(10), nullable=False)
+    sube = Column(String(10), nullable=False)
     subeadi = Column(String(10), nullable=False)
     ders_saati = Column(Integer, nullable=False)
-    ders_saati_adi = Column(String(10), nullable=False)
-    uygulama_tarihi = Column(Date, nullable=False, default="2025-04-21 13:00:00")
-    ders_ogretmeni_id = Column(Integer, ForeignKey('nobet_ogretmen.id'), nullable=False)
-    
-    # Relationships
+    #ders_saati_adi = Column(String(10), nullable=False)
+    uygulama_tarihi = Column(DateTime, default=datetime.now)
+    ogretmen_id = Column(Integer, ForeignKey("nobet_ogretmen.id"), nullable=False)
+
     ogretmen = relationship("NobetOgretmen", back_populates="dersler")
 
+
 class NobetGorevi(BaseModel):
-    __tablename__ = 'nobet_nobetgorevi'
-    
+    __tablename__ = "nobet_gorevi"
+
     nobet_gun = Column(String(10), nullable=False)
     nobet_yeri = Column(String(100), nullable=False)
-    nobetci_ogretmen_id = Column(Integer, ForeignKey('nobet_ogretmen.id'), nullable=False)
-    uygulama_tarihi = Column(Date, nullable=False, default="2025-04-21 13:00:00")
-    # Relationships
+    uygulama_tarihi = Column(DateTime, default=datetime.now)
+    ogretmen_id = Column(Integer, ForeignKey("nobet_ogretmen.id"), nullable=False)
+
     ogretmen = relationship("NobetOgretmen", back_populates="nobetler")
 
+
+class Devamsizlik(BaseModel):
+    __tablename__ = "nobet_devamsizlik"
+
+    baslangic_tarihi = Column(DateTime, nullable=False)
+    bitis_tarihi = Column(DateTime)
+    aciklama = Column(String(200))
+    ogretmen_id = Column(Integer, ForeignKey("nobet_ogretmen.id"), nullable=False)
+
+    ogretmen = relationship("NobetOgretmen", back_populates="devamsizliklar")
+
+
 class NobetGecmisi(BaseModel):
-    __tablename__ = 'nobet_nobetgecmisi'
-    
+    __tablename__ = "nobet_gecmis"
+
     saat = Column(Integer)
     sinif = Column(String)
     devamsiz = Column(Integer)
-    tarih = Column(DateTime)
+    tarih = Column(DateTime, default=datetime.now)
     atandi = Column(Integer, default=1)
-    nobetgecmisi_ogretmen_id = Column(Integer, ForeignKey('nobet_ogretmen.id'), nullable=False)
-    
-    # Relationships
+    ogretmen_id = Column(Integer, ForeignKey("nobet_ogretmen.id"), nullable=False)
+
     ogretmen = relationship("NobetOgretmen", back_populates="gecmis")
 
+
 class NobetAtanamayan(BaseModel):
-    __tablename__ = 'nobet_atanamayan'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    __tablename__ = "nobet_atanamayan"
+
     saat = Column(Integer)
     sinif = Column(String)
-    devamsiz = Column(Integer, ForeignKey('nobet_ogretmen.id'), nullable=False)
-    tarih = Column(DateTime)
+    tarih = Column(DateTime, default=datetime.now)
     atandi = Column(Integer, default=0)
+    ogretmen_id = Column(Integer, ForeignKey("nobet_ogretmen.id"), nullable=False)
 
-    # Relationships
     ogretmen = relationship("NobetOgretmen", back_populates="atanamayan")
 
-class Devamsizlik(Base):
-    __tablename__ = 'devamsizliklar'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ogretmen_id = Column(Integer, ForeignKey('nobet_ogretmen.id'), nullable=False)
-    baslangic_tarihi = Column(Date, nullable=False)
-    bitis_tarihi = Column(Date, nullable=True)  # None ise tek günlük devamsızlık
-    aciklama = Column(String(200))
-    
-    ogretmen = relationship("NobetOgretmen", back_populates="devamsizliklar")
 
 class NobetIstatistik(BaseModel):
-    __tablename__ = 'nobet_nobetistatistik'
-    
-    id = Column(Integer, primary_key=True)
-    toplam_nobet = Column(Integer, default=0)  # Toplam nöbet sayısı
-    atanmayan_nobet = Column(Integer, default=0)  # Atanamayan nöbet sayısı
-    haftalik_ortalama = Column(Float, default=0.0)  # Haftalık ortalama nöbet sayısı
-    hafta_sayisi = Column(Integer, default=0)  # İstatistiğin tutulduğu hafta sayısı
-    son_nobet_tarihi = Column(Date)  # Son nöbet tarihi
-    agirlikli_puan = Column(Float, default=1.0)  # Dağıtım öncelik puanı
-    nobetistatistik_ogretmen_id = Column(Integer, ForeignKey('nobet_ogretmen.id'), nullable=False, unique=True)
-    
-    # Relationships
+    __tablename__ = "nobet_istatistik"
+
+    toplam_nobet = Column(Integer, default=0)
+    atanmayan_nobet = Column(Integer, default=0)
+    haftalik_ortalama = Column(Float, default=0.0)
+    hafta_sayisi = Column(Integer, default=0)
+    son_nobet_tarihi = Column(DateTime)
+    agirlikli_puan = Column(Float, default=1.0)
+    ogretmen_id = Column(Integer, ForeignKey("nobet_ogretmen.id"), nullable=False, unique=True)
+
     ogretmen = relationship("NobetOgretmen", back_populates="istatistikler")
-
-
