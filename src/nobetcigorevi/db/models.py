@@ -52,7 +52,6 @@ class NobetDersProgrami(BaseModel):
     sube = Column(String(10), nullable=False)
     subeadi = Column(String(10), nullable=False)
     ders_saati = Column(Integer, nullable=False)
-    #ders_saati_adi = Column(String(10), nullable=False)
     uygulama_tarihi = Column(DateTime, default=datetime.now)
     ogretmen_id = Column(Integer, ForeignKey("nobet_ogretmen.id"), nullable=False)
 
