@@ -145,13 +145,14 @@ class AdvancedNobetDagitim:
                      for c in self.absent_classes 
                      if (c['hour'], c['class']) not in assigned_classes]
         
-        return {
+        duzelt_solution = {
             'assignments': solution['assignments'],
             'unassigned': unassigned,
             'teacher_counts': dict(solution['teacher_counts']),
             'teacher_schedule': {k: list(v) for k, v in solution['teacher_schedule'].items()},
             'penalty': self.calculate_penalty(solution)
         }
+        return duzelt_solution
 
     def prepare_availability(self, teachers):
         availability = {}
