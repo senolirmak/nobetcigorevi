@@ -33,6 +33,7 @@ packages = ["nobetcigorevi",
 
 [tool.setuptools.package-data]
 "nobetcigorevi.src.ui" = ["*.ui"]
+"nobetcigorevi.src.ui.style" = ["*.qss"]
 "nobetcigorevi.src.data" = ["*.db"]
 "nobetcigorevi.src.hazirlik" = ["*.xlsx"]
 "nobetcigorevi.src.veri" = ["*.xlsx"]
