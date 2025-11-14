@@ -11,9 +11,18 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtCore import QDate
 from views.main_window import NobetSistemi
 from db.database import engine, Base
+from pathlib import Path
 
 def load_stylesheet():
-    with open("ui/style/default.qss", "r", encoding="utf-8") as f:
+    # style dosyasının proje içindeki gerçek yolunu bul
+    base_dir = Path(__file__).resolve().parent
+    qss_path = base_dir / "ui" / "style" / "default.qss"
+
+    if not qss_path.exists():
+        print("❌ QSS dosyası bulunamadı:", qss_path)
+        return ""
+
+    with open(qss_path, "r", encoding="utf-8") as f:
         return f.read()
 
 def main():
