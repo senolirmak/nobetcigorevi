@@ -1,0 +1,40 @@
+/* 🌟 GENEL ARKA PLAN */
+QMainWindow {
+    background-color: #f5f5f5;
+}
+QPushButton {
+    background-color: #3498db;
+    color: white;
+    border-radius: 5px;
+    padding: 5px 10px;
+}
+QPushButton:hover {
+    background-color: #2980b9;
+}
+QListWidget, QTableView {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+QLabel {
+    font-weight: bold;
+}
+QComboBox {
+    min-height: 30px;
+}
+QTabWidget::pane {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+QTabBar::tab {
+    padding: 8px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+QTabBar::tab:selected {
+    background: white;
+    border-bottom: 2px solid #3498db;
+}            

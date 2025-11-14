@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=70.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nobetcigorevi"
+version = "1.0.0"
+description = "Abdurrahim Karakoç Anadolu Lisesi Nöbetçi Öğretmen Yönetim Sistemi"
+authors = [
+  { name = "Şenol Irmak" }
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+  "PyQt5",
+  "SQLAlchemy",
+  "pandas",
+  "openpyxl",
+  "xlrd",
+  "reportlab"
+]
+
+[project.scripts]
+nobetci = "nobetcigorevi.src.main:main"
+
+[tool.setuptools]
+packages = ["nobetcigorevi", 
+            "nobetcigorevi.src",
+            "nobetcigorevi.src.db",
+            "nobetcigorevi.src.utils",
+            "nobetcigorevi.src.views",]
+
+[tool.setuptools.package-data]
+"nobetcigorevi.src.ui" = ["*.ui"]
+"nobetcigorevi.src.data" = ["*.db"]
+"nobetcigorevi.src.hazirlik" = ["*.xlsx"]
+"nobetcigorevi.src.veri" = ["*.xlsx"]
+"nobetcigorevi.src.raporlar" = ["*.xlsx"]
+"nobetcigorevi.src.icons" = ["*.png"]

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Nöbetçi Öğretmen
+Comment=Abdurrahim Karakoç Anadolu Lisesi Nöbetçi Öğretmen Yönetim Sistemi
+Exec=python /home/senolirmak/PythonCode/Nobetci/nobetcigorevi/src/main.py
+Icon=/home/senolirmak/PythonCode/Nobetci/nobetcigorevi/src/icons/icon.png
+Terminal=false
+Categories=Education;Office;Utility;
+StartupNotify=true
+
+
