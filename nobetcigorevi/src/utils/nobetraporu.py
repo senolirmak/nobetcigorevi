@@ -21,14 +21,30 @@ from db.database import SessionLocal
 from db.models import NobetGorevi, NobetOgretmen
 from sqlalchemy import func
 
-
+# ---------------------------------------------------------
+# Kullanıcı veri dizini: ~/NobetciVeri
+# Raporlar: ~/NobetciVeri/raporlar
+# ---------------------------------------------------------
+HOME_DATA_DIR = Path.home() / "NobetciVeri"
+RAPOR_DIR = HOME_DATA_DIR / "raporlar"
+RAPOR_DIR.mkdir(parents=True, exist_ok=True)
 
 class ExcelRaporOlusturucu:
-    def __init__(self, hedef_klasor="raporlar"):
+    def __init__(self, hedef_klasor=None):
         """Rapor oluşturucu başlatılır."""
         self.data = TeacherManager()
-        self.hedef_klasor = hedef_klasor
-        Path(hedef_klasor).mkdir(parents=True, exist_ok=True)
+
+        if hedef_klasor is None:
+            # Varsayılan: ~/NobetciVeri/raporlar
+            self.hedef_klasor = RAPOR_DIR
+        else:
+            p = Path(hedef_klasor)
+            # Eğer mutlak değilse, ~/NobetciVeri altına bağla
+            if not p.is_absolute():
+                p = HOME_DATA_DIR / p
+            self.hedef_klasor = p
+
+        self.hedef_klasor.mkdir(parents=True, exist_ok=True)
 
     # ---------------------------------------------------------
     # 🔹 Ana Rapor Fonksiyonu
@@ -97,7 +113,7 @@ class ExcelRaporOlusturucu:
         print(f"✅ Rapor başarıyla oluşturuldu: {output_filename}")
         self.open_excel_file(output_filename)
     
-    def raporla_nobet_gorevi_excel(self, uygulama_tarihi_str=None, hedef_klasor="raporlar"):
+    def raporla_nobet_gorevi_excel(self, uygulama_tarihi_str=None, hedef_klasor=None):
         """
         NobetGorevi tablosundaki en güncel (veya verilen) uygulama_tarihi'ne göre
         Türkçe gün adlarıyla, Pazartesi→Cuma sıralı ve 'Nöbet Günü' ilk sütunda olacak şekilde
@@ -249,14 +265,21 @@ class ExcelRaporOlusturucu:
             ws.column_dimensions["B"].width = 28  # Branş
             ws.column_dimensions["C"].width = 28  # Nöbet yeri
 
-            # 🔹 9. Dosyayı kaydet
-            if not os.path.exists(hedef_klasor):
-                os.makedirs(hedef_klasor)
-
+            # 🔹 9. Dosyayı kaydet (~/NobetciVeri/raporlar altında)
+            if hedef_klasor is None:
+                rapor_dir = self.hedef_klasor          # genelde RAPOR_DIR
+            else:
+                p = Path(hedef_klasor)
+                if not p.is_absolute():
+                    p = HOME_DATA_DIR / p
+                rapor_dir = p
+            
+            rapor_dir.mkdir(parents=True, exist_ok=True)
+            
             rapor_adi = f"Rapor_Nobet_{uygulama_tarihi.strftime('%Y%m%d')}.xlsx"
-            rapor_yolu = os.path.join(hedef_klasor, rapor_adi)
-            wb.save(rapor_yolu)
-
+            rapor_yolu = rapor_dir / rapor_adi
+            wb.save(str(rapor_yolu))
+            
             print(f"✅ Nöbet raporu oluşturuldu: {rapor_yolu}")
             self.open_excel_file(rapor_yolu)
             

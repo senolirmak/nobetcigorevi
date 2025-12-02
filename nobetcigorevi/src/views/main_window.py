@@ -38,6 +38,7 @@ from db.database import SessionLocal
 from sqlalchemy import select, and_, func
 from PyQt5.QtCore import QTimer
 import os
+import shutil
 
 class NobetSistemi(QMainWindow):
     data_updated = pyqtSignal(list)  # Veri değiştiğinde emit edilecek sinyal
@@ -246,8 +247,18 @@ class NobetSistemi(QMainWindow):
             self.txt_nobet_listesi.setText(file_path)
     
     def veri_yukle(self):
-        ders_path = self.txt_ders_programi.text()
-        nobet_path = self.txt_nobet_listesi.text()
+        from pathlib import Path
+        HOME_DATA = Path.home() / "NobetciVeri"
+        VERI_DIR = HOME_DATA / "veri"
+        HAZIRLIK_DIR = HOME_DATA / "hazirlik"
+    
+        VERI_DIR.mkdir(parents=True, exist_ok=True)
+        HAZIRLIK_DIR.mkdir(parents=True, exist_ok=True)
+    
+        # GUI’den gelen yollar
+        ders_path = self.txt_ders_programi.text().strip()
+        nobet_path = self.txt_nobet_listesi.text().strip()
+    
         tarih = self.date_uygulama_tarihi.date().toString("yyyy/MM/dd")
     
         if not ders_path or not nobet_path:
@@ -255,33 +266,61 @@ class NobetSistemi(QMainWindow):
             return
     
         try:
+            # Dosyaları GUI’den gelen path’ten alıp Home dizinine kopyalayalım
+            ders_file = Path(ders_path)
+            if ders_file.exists():
+                hedef_ders = VERI_DIR / ders_file.name
+                if ders_file != hedef_ders:
+                    shutil.copy2(ders_file, hedef_ders)
+            else:
+                raise FileNotFoundError(f"Ders programı bulunamadı: {ders_path}")
+    
+            nobet_file = Path(nobet_path)
+            if nobet_file.exists():
+                hedef_nobet = VERI_DIR / nobet_file.name
+                if nobet_file != hedef_nobet:
+                    shutil.copy2(nobet_file, hedef_nobet)
+            else:
+                raise FileNotFoundError(f"Nöbet listesi bulunamadı: {nobet_path}")
+    
+            # personel.xlsx da aynı folder’da olmalı
+            personel_excel = VERI_DIR / "personel.xlsx"
+            if not personel_excel.exists():
+                raise FileNotFoundError(f"Personel dosyası bulunamadı: {personel_excel}")
+    
             from utils.dersprogrami_isleyici import DersProgramiIsleyici
-            self.update_uygulama_tarihi_label(from_gui=True)  # 🟩 tarih QDateEdit’ten alınır
-            sinif_bilgileri = {9:['A','B','C','D','E','F'],
-                               10:['A','B','C','D','E','F','G','H','İ'],
-                               11:['A','B','C','D','E','F','G','H'],
-                               12:['A','B','C','D','E','F','G']}
+            self.update_uygulama_tarihi_label(from_gui=True)
             
+            sinif_bilgileri = {
+                9: ['A','B','C','D','E','F'],
+                10:['A','B','C','D','E','F','G','H','İ'],
+                11:['A','B','C','D','E','F','G','H'],
+                12:['A','B','C','D','E','F','G']
+            }
+    
+            # 🟩 Tüm yollar artık HOME/NobetciVeri/veri altından okunuyor
             isleyici = DersProgramiIsleyici(
-                file_path=ders_path,
-                personel_path="veri/personel.xlsx",
-                file_path_nobet=nobet_path,
+                file_path=hedef_ders.name,
+                personel_path="personel.xlsx",
+                file_path_nobet=hedef_nobet.name,
                 uygulama_tarihi=tarih,
                 sinif_bilgileri=sinif_bilgileri
             )
-            isleyici.calistir()
+    
+            isleyici.calistir()   # → @HOME/NobetciVeri/hazirlik içine yazar
+    
+            # Veri aktarımı için temel path artık Home dizini olmalı
             
-            base_path = "./"
-            aktarim = VeriAktarimiYonetici(base_path=base_path)
+            aktarim = VeriAktarimiYonetici(base_path=str(HOME_DATA))
             logs = aktarim.run()
-            
+    
             QMessageBox.information(self, "Başarılı", "\n".join(logs))
             self.lbl_yukleme_durum.setText("✅ Veri başarıyla işlendi ve kaydedildi.")
-            QMessageBox.information(self, "Başarılı", "Veriler başarıyla işlendi ve kayıt dosyaları oluşturuldu.")
-    
+
         except Exception as e:
             self.lbl_yukleme_durum.setText(f"❌ Hata: {e}")
             QMessageBox.critical(self, "Hata", f"Veri yüklenirken hata oluştu:\n{e}")
+
 
     
     def update_label(self, value):
@@ -1138,7 +1177,7 @@ class NobetSistemi(QMainWindow):
             for gun, grup in grouped_by_day.items():
                 # "AYSAN KESKİN" sabit kalsın
                 sabit_ogretmenler = [g for g in grup if g[1] in SABIT_OGRETMENLER]
-                degisebilirler = [g for g in grup if g[1] not in SABIT_OGRETMENLER]
+                degisebilirler = [g for g in grup if g[1] not in sabit_ogretmenler]
     
                 if len(degisebilirler) > 1:
                     # Sadece sabit olmayanlar arasında rotasyon
