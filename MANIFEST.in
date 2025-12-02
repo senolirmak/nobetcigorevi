@@ -13,10 +13,6 @@ recursive-include docs *.rst Makefile make.bat *.jpg *.png *.gif
 include requirements.txt
 include environment.yml
 include nobetcigorevi/src/ui/*.ui
-include nobetcigorevi/src/data/*.db
-include nobetcigorevi/src/hazirlik/*.xlsx
-include nobetcigorevi/src/veri/*.xlsx
-include nobetcigorevi/src/raporlar/*.xlsx
 include nobetcigorevi/src/icons/*.png
 recursive-include nobetcigorevi/src/utils *.py
 recursive-include nobetcigorevi/src/views *.py
