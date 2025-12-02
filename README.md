@@ -57,6 +57,28 @@ Veri Yükle kartını seçerek OOK11002_R01_XXXX.xlsx ve nobetciler.xlsx dosyan�
 yeni veriler Uygulama Tarihi ile kayıt yapılır.
 
 ## ⚙️ Kurulum
+sudo mkdir -p /opt/Nobetci
+sudo cp -r Nobetci/* /opt/Nobetci/
+sudo chown -R root:root /opt/Nobetci
+sudo chmod -R 755 /opt/Nobetci
+
+/opt/Nobetci/
+    ├── nobetcigorevi/
+    ├── docs/
+    ├── setup.py
+    ├── requirements.txt
+    └── ...
+mkdir -p ~/NobetciVeri/{veri,hazirlik,raporlar,data}
+~/NobetciVeri/
+    ├── veri/personel.xlsx
+    ├── hazirlik/
+    ├── raporlar/
+    └── data/ (veritabanı)
+    
+pip install -r requirements.txt
+## docs içinde nobetci.desktop
+chmod +x ~/.local/share/applications/nobetci.desktop
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
 
 ### Conda Ortamı Oluşturma
 ```bash
