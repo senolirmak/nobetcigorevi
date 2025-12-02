@@ -56,26 +56,27 @@ formatında,
 Veri Yükle kartını seçerek OOK11002_R01_XXXX.xlsx ve nobetciler.xlsx dosyanısın yerini gösterin
 yeni veriler Uygulama Tarihi ile kayıt yapılır.
 
-## ⚙️ Kurulum
+## ⚙️ Fedora Linux İçin Kurulum ( /opt Dizini Üzerinden )
+
+Aşağıdaki adımları izleyerek Nöbetçi Öğretmen Programı’nı tamamen sistem seviyesinde kurabilirsiniz.
+
+---
+
+### 🔧 1. Projeyi `/opt/Nobetci` Dizini Altına Kopyalayın
+
+```bash
 sudo mkdir -p /opt/Nobetci
 sudo cp -r Nobetci/* /opt/Nobetci/
 sudo chown -R root:root /opt/Nobetci
 sudo chmod -R 755 /opt/Nobetci
 
-/opt/Nobetci/
-    ├── nobetcigorevi/
-    ├── docs/
-    ├── setup.py
-    ├── requirements.txt
-    └── ...
 mkdir -p ~/NobetciVeri/{veri,hazirlik,raporlar,data}
 ~/NobetciVeri/
-    ├── veri/personel.xlsx
-    ├── hazirlik/
-    ├── raporlar/
-    └── data/ (veritabanı)
-    
-pip install -r requirements.txt
+├── veri/            # Excel giriş dosyaları (personel.xlsx, ...)
+├── hazirlik/        # İşlenmiş ve temizlenmiş Excel dosyaları
+├── raporlar/        # Üretilen Excel raporları
+└── data/            # okul_veritabani.db (veritabanı)
+
 ## docs içinde nobetci.desktop
 chmod +x ~/.local/share/applications/nobetci.desktop
 update-desktop-database ~/.local/share/applications 2>/dev/null || true
