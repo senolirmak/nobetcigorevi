@@ -1,5 +1,4 @@
 
-# Nöbetçi Öğretmen Ders Doldurma Görevi
 # 🏫 Nöbetçi Öğretmen Ders Doldurma Sistemi
 
 **Yazan:** Şenol Irmak  
