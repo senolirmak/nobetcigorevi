@@ -585,7 +585,7 @@ class EOkulVeriAktar:
     # ------------------ PERSONEL ------------------
     def save_yeni_veri_NobetPersonel(self, personel_df):
         status = {"inserted": 0, "updated": 0, "errors": 0, "status": "success", "message": ""}
-        required_columns = ['adisoyadi', 'brans', 'kimlikno', 'gorev']
+        required_columns = ['adisoyadi', 'brans', 'kimlikno', 'gorev', 'cinsiyet']
         missing = [col for col in required_columns if col not in personel_df.columns]
         if missing:
             return {"status": "error", "message": f"Eksik sütun(lar): {', '.join(missing)}", **status}
@@ -598,7 +598,7 @@ class EOkulVeriAktar:
                         result = self.insert_or_update(
                             session, NobetPersonel,
                             {"kimlikno": str(row["kimlikno"])},
-                            {"adi_soyadi": row["adisoyadi"], "brans": row["brans"], "gorev_tipi": row["gorev"]}
+                            {"adi_soyadi": row["adisoyadi"], "brans": row["brans"], "gorev_tipi": row["gorev"],"cinsiyet":row["cinsiyet"]}
                         )
                         status[result] += 1
                     except Exception:
@@ -623,7 +623,7 @@ class EOkulVeriAktar:
             "message": ""
         }
     
-        required_columns = ['adi_soyadi', 'brans', 'nobeti_var', 'gorev_tipi', 'uygulama_tarihi']
+        required_columns = ['adi_soyadi', 'brans', 'nobeti_var', 'gorev_tipi', 'uygulama_tarihi','cinsiyet']
         missing = [col for col in required_columns if col not in personel_df.columns]
         if missing:
             return {
@@ -666,6 +666,7 @@ class EOkulVeriAktar:
                             adi_soyadi=row["adi_soyadi"],
                             brans=row["brans"],
                             gorev_tipi=row["gorev_tipi"],
+                            cinsiyet=row["cinsiyet"],
                         ).first()
     
                         if existing:
@@ -679,7 +680,8 @@ class EOkulVeriAktar:
                                 brans=row["brans"],
                                 nobeti_var=nobeti_var,
                                 gorev_tipi=row["gorev_tipi"],
-                                uygulama_tarihi = uygulama_tarihi
+                                uygulama_tarihi = uygulama_tarihi,
+                                cinsiyet =row["cinsiyet"]
                             )
                             session.add(yeni)
                             status["inserted"] += 1

@@ -23,7 +23,8 @@ class NobetPersonel(BaseModel):
     brans = Column(String(50), nullable=False)
     kimlikno = Column(String(11), nullable=False, unique=True)
     gorev_tipi = Column(String(50))
-
+    #cinsiyet: 1=ERKEK, 0=KADIN
+    cinsiyet = Column(Integer, nullable=True)
 
 class NobetOgretmen(BaseModel):
     __tablename__ = "nobet_ogretmen"
@@ -33,6 +34,8 @@ class NobetOgretmen(BaseModel):
     nobeti_var = Column(Boolean, default=True)
     gorev_tipi = Column(String(50))
     uygulama_tarihi = Column(DateTime, default=datetime.now)
+    #cinsiyet: 1=ERKEK, 0=KADIN
+    cinsiyet = Column(Integer, nullable=True)
 
     dersler = relationship("NobetDersProgrami", back_populates="ogretmen", cascade="all, delete-orphan")
     nobetler = relationship("NobetGorevi", back_populates="ogretmen", cascade="all, delete-orphan")

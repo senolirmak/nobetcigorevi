@@ -267,7 +267,7 @@ class DersProgramiIsleyici:
         c_df = self.processed_df['ders_ogretmeni'].drop_duplicates().reset_index(drop=True)
         ogretmenler_df = pd.DataFrame(c_df)
         merged = ogretmenler_df.merge(
-            self.df_personel[['gorev', 'adisoyadi', 'brans']],
+            self.df_personel[['gorev', 'adisoyadi', 'brans','cinsiyet']],
             how='left',
             left_on='ders_ogretmeni',
             right_on='adisoyadi'
