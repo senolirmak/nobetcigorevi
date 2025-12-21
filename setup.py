@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 setup.py – Nöbetçi Öğretmen Ders Doldurma Sistemi
+
 @author: Şenol Irmak
 """
 

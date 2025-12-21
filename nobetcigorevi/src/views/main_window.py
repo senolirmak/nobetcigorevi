@@ -63,7 +63,7 @@ class NobetSistemi(QMainWindow):
         self.modified_cells = {}
         self.secilen_gun = None
 
-        self.max_shifts = 2
+        self.max_shifts = 1
         self.sonuc = None
         
         # Renk tanımlamaları
