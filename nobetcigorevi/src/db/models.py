@@ -126,7 +126,7 @@ class NobetIstatistik(BaseModel):
 class NobetDegisimKaydi(BaseModel):
     __tablename__ = "nobet_degisim_kaydi"
 
-    degisim_tarihi = Column(DateTime, default=datetime.now)  # değişiklik zamanı
+    uygulama_tarihi = Column(DateTime, default=datetime.now)  # değişiklik zamanı
     uygulama_baslangic = Column(DateTime, nullable=False)    # haftanın başlangıcı
     uygulama_bitis = Column(DateTime, nullable=False)        # haftanın bitişi
     aciklama = Column(String(200), default="Haftalık nöbet rotasyonu uygulandı")

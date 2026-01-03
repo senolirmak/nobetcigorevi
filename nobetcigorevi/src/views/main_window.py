@@ -30,7 +30,7 @@ from utils.database_util import TeacherManager
 from utils.tablemanager import TableManager, DataSelectionDialog
 from utils.pencere_fonksiyon import PencereFonksiyon
 from utils.veri_aktarimi_yonetici import VeriAktarimiYonetici
-from db.models import (NobetGecmisi, NobetIstatistik,
+from db.models import (NobetGecmisi, NobetIstatistik,NobetDersProgrami,
                                      NobetGorevi, NobetDegisimKaydi,
                                      NobetOgretmen)
 
@@ -188,6 +188,8 @@ class NobetSistemi(QMainWindow):
         
         #Nöbet Listesi Raporu
         self.haftalik_nobet_rapor.clicked.connect(self.rapor_olustur_haftalik_nobet)
+        #Nöbet Yerlerini Değiştir
+        self.degistir_button.clicked.connect(self.gecmise_donuk_tum_nobet_degisimlerini_isle)
     
     def verihazirla(self):
         """Nöbetçi listesini veritabanından yükler"""
@@ -1096,122 +1098,240 @@ class NobetSistemi(QMainWindow):
             QMessageBox.critical(self, "Hata", f"Veri yüklenirken hata oluştu:\n{str(e)}")
         finally:
             session.close()
-       
-        
-    def haftalik_nobet_yeri_degistir(self):
+
+    def haftalik_nobet_yeri_degistir(self, force=False):
         """
-        Haftalık nöbet yerleri kontrol edilir:
-        Eğer mevcut haftanın Pazar günü (uygulama_bitis) geçmişse ve o hafta için
-        değişim kaydı yoksa nöbet yerleri güncellenir.
-        Ancak belirli öğretmenler (ör. 'AYSAN KESKİN') sabit tutulur.
-        """
-        SABIT_OGRETMENLER = ["AYSAN KESKİN"]
-        from datetime import datetime, timedelta
+        KURAL: Her haftanın PAZARTESİ günü nöbet yerleri değiştirilir.
     
+        Ek kural (CİNSİYET):
+        - Yer adında "GÜNEY" geçen nöbet yerleri öncelikle cinsiyet=1 (Erkek) öğretmenlere verilir.
+        - O gün yeterli erkek yoksa kalan "GÜNEY" yerleri kadınlarda kalabilir/atanabilir.
+        """
+        from datetime import datetime, timedelta, date
+        from sqlalchemy import func
+        from PyQt5.QtWidgets import QMessageBox
+    
+        AYRICALIK_OGRETMEN = {
+            "ogretmen": "AYSAN KESKİN",
+            "seciliyer": ["1.KAT KUZEY", "3.KAT KUZEY", "BAHÇE ÖN ARKA"]
+        }
+    
+        def monday_of_week(d: date) -> date:
+            return d - timedelta(days=d.weekday())
+    
+        def is_guney(yer: str) -> bool:
+            return "GÜNEY" in ((yer or "").upper())
+    
+        def guney_erkek_onceligi_uygula(grup):
+            """
+            grup: [(NobetGorevi, adsoyad, cinsiyet), ...]
+            Rotasyon sonrası aynı gün içinde swap yaparak:
+            - 'GÜNEY' yerlerinde erkek önceliği sağlar
+            - erkek yetmezse kadınlar kalabilir
+            """
+            guney_kayitlar = [x for x in grup if is_guney(x[0].nobet_yeri)]
+            if not guney_kayitlar:
+                return 0
+    
+            erkekler = [x for x in grup if x[2] == 1]
+            if not erkekler:
+                return 0
+    
+            erkek_guney_disinda = [x for x in erkekler if not is_guney(x[0].nobet_yeri)]
+            if not erkek_guney_disinda:
+                return 0
+    
+            degisen_lokal = 0
+    
+            # Güneyde kadın varsa, güney dışındaki erkekle swap
+            for (g_gorev, g_ad, g_cins) in guney_kayitlar:
+                if g_cins == 1:
+                    continue  # zaten erkek
+    
+                if not erkek_guney_disinda:
+                    break
+    
+                e_gorev, e_ad, e_cins = erkek_guney_disinda.pop(0)
+    
+                g_yer = (g_gorev.nobet_yeri or "").strip()
+                e_yer = (e_gorev.nobet_yeri or "").strip()
+    
+                if g_yer != e_yer:
+                    g_gorev.nobet_yeri, e_gorev.nobet_yeri = e_yer, g_yer
+                    degisen_lokal += 2
+    
+            return degisen_lokal
+    
+        session = SessionLocal()
         try:
-            session = SessionLocal()
+            now_dt = datetime.now()
+            today = now_dt.date()
     
-            # 🔹 En son nöbet haftasını bul
-            latest_record = (
-                session.query(NobetGorevi.uygulama_tarihi)
-                .order_by(NobetGorevi.uygulama_tarihi.desc())
+            # 1) Program uygulanma tarihi
+            program_row = (
+                session.query(NobetDersProgrami.uygulama_tarihi)
+                .order_by(NobetDersProgrami.uygulama_tarihi.desc())
                 .first()
             )
-            if not latest_record:
-                self.statusBar().showMessage("Henüz nöbet kaydı bulunamadı.", 5000)
+            if not program_row:
+                self.statusBar().showMessage("Ders programı bulunamadı (NobetDersProgrami boş).", 6000)
                 return
     
-            uygulama_baslangic = latest_record[0]
-            uygulama_bitis = uygulama_baslangic + timedelta(days=6)
-            bugun = datetime.now()
+            program_uygulama_tarihi = program_row[0]
+            program_start_date = program_uygulama_tarihi.date()
     
-            # 🔸 Henüz hafta bitmemişse değişim yapılmaz
-            if bugun.date() <= uygulama_bitis.date():
-                kalan = (uygulama_bitis.date() - bugun.date()).days
+            # 2) Bu haftanın Pazartesisi
+            this_monday = monday_of_week(today)
+    
+            # 3) Pazartesi değilse ve force yoksa çık
+            if not force and today != this_monday:
                 self.statusBar().showMessage(
-                    f"Hafta bitimine {kalan} gün kaldı, nöbet değişimi yapılmayacak.", 5000
+                    f"Bugün {today.strftime('%d.%m.%Y')} — değişim sadece Pazartesi yapılır.",
+                    6000
                 )
                 return
     
-            # 🔹 Aynı hafta için zaten değişim yapılmış mı?
-            mevcut_degisim = (
+            # 4) Program başlangıcından önce değişim olmaz
+            if this_monday < program_start_date:
+                self.statusBar().showMessage(
+                    f"Program başlangıcı {program_start_date.strftime('%d.%m.%Y')} — bu tarihten önce değişim olmaz.",
+                    6000
+                )
+                return
+    
+            # 4.1) Programın başladığı ilk Pazartesi değişim yapma (force hariç)
+            if not force and this_monday == program_start_date:
+                self.statusBar().showMessage(
+                    f"Programın başladığı ilk hafta ({program_start_date.strftime('%d.%m.%Y')}) için değişim yapılmayacak. "
+                    f"İlk değişim: {(program_start_date + timedelta(days=7)).strftime('%d.%m.%Y')}.",
+                    8000
+                )
+                return
+    
+            # 5) Bu Pazartesi için zaten değişim var mı?
+            already = (
                 session.query(NobetDegisimKaydi)
                 .filter(
-                    and_(
-                        func.date(NobetDegisimKaydi.uygulama_baslangic) == func.date(uygulama_baslangic),
-                        func.date(NobetDegisimKaydi.uygulama_bitis) == func.date(uygulama_bitis),
-                    )
+                    func.date(NobetDegisimKaydi.uygulama_tarihi) == func.date(program_uygulama_tarihi),
+                    func.date(NobetDegisimKaydi.uygulama_bitis) == this_monday
                 )
                 .first()
             )
-            if mevcut_degisim:
+            if already and not force:
                 self.statusBar().showMessage(
-                    f"{uygulama_baslangic.strftime('%d.%m.%Y')} haftası için değişim zaten yapılmış.", 6000
+                    f"{this_monday.strftime('%d.%m.%Y')} Pazartesi için değişim zaten yapılmış.",
+                    7000
                 )
                 return
     
-            # 🔹 O haftanın nöbet kayıtlarını al
+            # 6) Aktif nöbet görevleri + cinsiyet çek
             gorevler = (
                 session.query(NobetGorevi)
-                .join(NobetOgretmen)
-                .filter(NobetGorevi.uygulama_tarihi == uygulama_baslangic)
-                .add_columns(NobetOgretmen.adi_soyadi)
+                .join(NobetOgretmen, NobetGorevi.ogretmen_id == NobetOgretmen.id)
+                .filter(func.date(NobetGorevi.uygulama_tarihi) == func.date(program_uygulama_tarihi))
+                .add_columns(NobetOgretmen.adi_soyadi, NobetOgretmen.cinsiyet)  # ✅ cinsiyet eklendi
                 .all()
             )
-    
             if not gorevler:
                 QMessageBox.warning(
-                    self,
-                    "Uyarı",
-                    f"{uygulama_baslangic.strftime('%d.%m.%Y')} haftasına ait nöbet kaydı bulunamadı.",
+                    self, "Uyarı",
+                    f"{program_uygulama_tarihi.strftime('%d.%m.%Y')} tarihli aktif nöbet kaydı bulunamadı."
                 )
                 return
     
-            # 🔁 Aynı gün nöbetçileri arasında yer rotasyonu
+            # 7) Gün bazlı grupla (3'lü tuple)
             grouped_by_day = {}
-            for gorev, ogretmen_adi in gorevler:
-                grouped_by_day.setdefault(gorev.nobet_gun, []).append((gorev, ogretmen_adi))
+            for gorev, ogretmen_adi, cinsiyet in gorevler:
+                grouped_by_day.setdefault(gorev.nobet_gun, []).append((gorev, ogretmen_adi, cinsiyet))
+    
+            ayricalik_adi = AYRICALIK_OGRETMEN.get("ogretmen")
+            ayricalik_yer_havuzu = AYRICALIK_OGRETMEN.get("seciliyer", [])
     
             degisen_sayisi = 0
     
+            # 8) Gün bazlı rotasyon
             for gun, grup in grouped_by_day.items():
-                # "AYSAN KESKİN" sabit kalsın
-                sabit_ogretmenler = [g for g in grup if g[1] in SABIT_OGRETMENLER]
-                degisebilirler = [g for g in grup if g[1] not in sabit_ogretmenler]
+                ayricalik_list = [g for g in grup if g[1] == ayricalik_adi]
+                digerleri = [g for g in grup if g[1] != ayricalik_adi]
     
-                if len(degisebilirler) > 1:
-                    # Sadece sabit olmayanlar arasında rotasyon
-                    yerler = [x[0].nobet_yeri for x in degisebilirler]
-                    yerler_rotated = yerler[1:] + yerler[:1]
+                # AYSAN havuz döngüsü
+                if ayricalik_list and ayricalik_yer_havuzu:
+                    ayr_kayit, _, _ = ayricalik_list[0]
+                    mevcut_yer = (ayr_kayit.nobet_yeri or "").strip()
     
-                    for (kayit, ogretmen_adi), yeni_yer in zip(degisebilirler, yerler_rotated):
-                        kayit.nobet_yeri = yeni_yer
+                    if mevcut_yer in ayricalik_yer_havuzu:
+                        start = (ayricalik_yer_havuzu.index(mevcut_yer) + 1) % len(ayricalik_yer_havuzu)
+                    else:
+                        start = 0
+    
+                    aday = ayricalik_yer_havuzu[start]
+                    if mevcut_yer != aday:
+                        ayr_kayit.nobet_yeri = aday
                         degisen_sayisi += 1
     
-            # 🔹 Değişiklik kaydını logla
+                # Diğerleri: TOPLU SWAP (kapasite kilitlemez)
+                if len(digerleri) > 1:
+                    digerleri = sorted(digerleri, key=lambda x: x[0].ogretmen_id)
+                    yerler = [(x[0].nobet_yeri or "").strip() for x in digerleri]
+                    yerler_rotated = yerler[1:] + yerler[:1]
+    
+                    for (kayit, _, _), yeni_yer in zip(digerleri, yerler_rotated):
+                        eski = (kayit.nobet_yeri or "").strip()
+                        yeni = (yeni_yer or "").strip()
+                        if eski != yeni:
+                            kayit.nobet_yeri = yeni
+                            degisen_sayisi += 1
+    
+                # ✅ Rotasyon sonrası: "GÜNEY" yerlerinde erkek önceliği
+                degisen_sayisi += guney_erkek_onceligi_uygula(grup)
+    
+            # 9) Eğer yine de 0 ise global fallback (AYSAN hariç) — güvenli
+            if degisen_sayisi == 0:
+                tum_kayitlar = [(g, ad, c) for g, ad, c in gorevler if ad != ayricalik_adi]
+                if len(tum_kayitlar) > 1:
+                    tum_kayitlar = sorted(tum_kayitlar, key=lambda x: x[0].ogretmen_id)
+                    yerler = [((k.nobet_yeri or "").strip()) for k, _, _ in tum_kayitlar]
+                    yerler_rotated = yerler[1:] + yerler[:1]
+    
+                    for (kayit, _, _), yeni_yer in zip(tum_kayitlar, yerler_rotated):
+                        eski = (kayit.nobet_yeri or "").strip()
+                        yeni = (yeni_yer or "").strip()
+                        if eski != yeni:
+                            kayit.nobet_yeri = yeni
+                            degisen_sayisi += 1
+    
+                    # global fallback sonrası da güney erkek önceliği uygula (gün bazlı)
+                    # (fallback global olduğu için tekrar gün bazlı düzeltme yapıyoruz)
+                    grouped_by_day2 = {}
+                    for gorev, ogretmen_adi, cinsiyet in gorevler:
+                        grouped_by_day2.setdefault(gorev.nobet_gun, []).append((gorev, ogretmen_adi, cinsiyet))
+                    for gun, grup in grouped_by_day2.items():
+                        degisen_sayisi += guney_erkek_onceligi_uygula(grup)
+    
+            # 10) Log yaz
             degisim_log = NobetDegisimKaydi(
-                uygulama_baslangic=uygulama_baslangic,
-                uygulama_bitis=uygulama_bitis,
-                degisim_tarihi=bugun,
+                uygulama_tarihi=program_uygulama_tarihi,
+                uygulama_baslangic=now_dt,
+                uygulama_bitis=datetime.combine(this_monday, datetime.min.time()),
                 aciklama=(
-                    f"{uygulama_baslangic.strftime('%d.%m.%Y')} haftasının nöbet yerleri "
-                    f"{bugun.strftime('%d.%m.%Y')} tarihinde güncellendi."
+                    f"Nöbet yerleri {today.strftime('%d.%m.%Y')} tarihinde güncellendi. "
+                    f"Program başlangıcı: {program_start_date.strftime('%d.%m.%Y')}. "
+                    f"Değişim Pazartesi: {this_monday.strftime('%d.%m.%Y')}. "
+                    f"GÜNEY yerlerinde erkek önceliği uygulandı."
                 ),
             )
             session.add(degisim_log)
             session.commit()
     
-            # 🔸 Kullanıcı bilgilendirmesi
-            self.statusBar().showMessage(
-                f"✅ {degisen_sayisi} nöbet yerinde değişiklik yapıldı (sabit öğretmenler hariç).",
-                6000,
-            )
+            self.statusBar().showMessage(f"✅ {degisen_sayisi} nöbet yerinde değişiklik yapıldı.", 7000)
             QMessageBox.information(
                 self,
                 "Nöbet Rotasyonu Tamamlandı",
                 f"{degisen_sayisi} nöbet yerinde değişiklik yapıldı.\n"
-                f"Hafta: {uygulama_baslangic.strftime('%d.%m.%Y')} - {uygulama_bitis.strftime('%d.%m.%Y')}\n"
-                f"Sabit öğretmen(ler): {', '.join(SABIT_OGRETMENLER)}",
+                f"Program başlangıcı: {program_start_date.strftime('%d.%m.%Y')}\n"
+                f"Değişim Pazartesi: {this_monday.strftime('%d.%m.%Y')}\n"
+                f"Değişim tarihi: {today.strftime('%d.%m.%Y')}\n"
+                f"GÜNEY yerleri: erkek önceliği uygulandı."
             )
     
         except Exception as e:
@@ -1219,3 +1339,224 @@ class NobetSistemi(QMainWindow):
             QMessageBox.critical(self, "Hata", f"Nöbet yerleri değiştirilemedi:\n{str(e)}")
         finally:
             session.close()
+
+
+    def gecmise_donuk_tum_nobet_degisimlerini_isle(self):
+        """
+        Program başlangıcından (program_uygulama_tarihi) itibaren,
+        her Pazartesi olması gereken tüm değişimleri geçmişe dönük uygular
+        ve NobetDegisimKaydi'na işler.
+    
+        - İlk hafta (programın başladığı Pazartesi) değişim yapılmaz.
+        - İlk değişim: program_baslangic + 7 gün (Pazartesi)
+        - Son değişim: bugünün haftasının Pazartesi'si dahil (bugün Pazartesi ise dahil)
+        - Daha önce kaydı olan Pazartesiler atlanır.
+        """
+        from datetime import datetime, timedelta, date
+        from sqlalchemy import func
+        from PyQt5.QtWidgets import QMessageBox
+    
+        AYRICALIK_OGRETMEN = {
+            "ogretmen": "AYSAN KESKİN",
+            "seciliyer": ["1.KAT KUZEY", "3.KAT KUZEY", "BAHÇE ÖN ARKA"]
+        }
+    
+        def monday_of_week(d: date) -> date:
+            return d - timedelta(days=d.weekday())  # Monday=0
+    
+        def uygula_tek_haftalik_rotasyon(session, program_uygulama_tarihi):
+            gorevler = (
+                session.query(NobetGorevi)
+                .join(NobetOgretmen, NobetGorevi.ogretmen_id == NobetOgretmen.id)
+                .filter(func.date(NobetGorevi.uygulama_tarihi) == func.date(program_uygulama_tarihi))
+                .add_columns(NobetOgretmen.adi_soyadi, NobetOgretmen.cinsiyet)  # ✅ cinsiyet eklendi
+                .all()
+            )
+        
+            if not gorevler:
+                return 0, "Aktif nöbet kaydı yok."
+        
+            def guney_erkek_onceligi_uygula(grup):
+                def is_guney(yer: str) -> bool:
+                    return "GÜNEY" in ((yer or "").upper())
+        
+                guney_kayitlar = [x for x in grup if is_guney(x[0].nobet_yeri)]
+                if not guney_kayitlar:
+                    return 0
+        
+                erkekler = [x for x in grup if x[2] == 1]
+                if not erkekler:
+                    return 0
+        
+                erkek_guney_disinda = [x for x in erkekler if not is_guney(x[0].nobet_yeri)]
+                if not erkek_guney_disinda:
+                    return 0
+        
+                degisen_lokal = 0
+        
+                for (g_gorev, g_ad, g_cins) in guney_kayitlar:
+                    if g_cins == 1:
+                        continue
+        
+                    if not erkek_guney_disinda:
+                        break
+        
+                    e_gorev, e_ad, e_cins = erkek_guney_disinda.pop(0)
+        
+                    g_yer = g_gorev.nobet_yeri
+                    e_yer = e_gorev.nobet_yeri
+        
+                    if (g_yer or "").strip() != (e_yer or "").strip():
+                        g_gorev.nobet_yeri, e_gorev.nobet_yeri = e_yer, g_yer
+                        degisen_lokal += 2
+        
+                return degisen_lokal
+        
+            # Gün bazlı grupla
+            grouped_by_day = {}
+            for gorev, ogretmen_adi, cinsiyet in gorevler:
+                grouped_by_day.setdefault(gorev.nobet_gun, []).append((gorev, ogretmen_adi, cinsiyet))
+        
+            ayricalik_adi = AYRICALIK_OGRETMEN.get("ogretmen")
+            ayricalik_yer_havuzu = AYRICALIK_OGRETMEN.get("seciliyer", [])
+        
+            degisen = 0
+        
+            for gun, grup in grouped_by_day.items():
+                # Ayrıcalıklı öğretmen
+                ayricalik_list = [g for g in grup if g[1] == ayricalik_adi]
+                digerleri = [g for g in grup if g[1] != ayricalik_adi]
+        
+                if ayricalik_list and ayricalik_yer_havuzu:
+                    ayr_kayit, _, _ = ayricalik_list[0]
+                    mevcut_yer = (ayr_kayit.nobet_yeri or "").strip()
+        
+                    if mevcut_yer in ayricalik_yer_havuzu:
+                        start = (ayricalik_yer_havuzu.index(mevcut_yer) + 1) % len(ayricalik_yer_havuzu)
+                    else:
+                        start = 0
+        
+                    aday = ayricalik_yer_havuzu[start]
+                    if mevcut_yer != aday:
+                        ayr_kayit.nobet_yeri = aday
+                        degisen += 1
+        
+                # Diğerleri: TOPLU SWAP
+                if len(digerleri) > 1:
+                    digerleri = sorted(digerleri, key=lambda x: x[0].ogretmen_id)
+                    yerler = [(x[0].nobet_yeri or "").strip() for x in digerleri]
+                    yerler_rotated = yerler[1:] + yerler[:1]
+        
+                    for (kayit, _, _), yeni_yer in zip(digerleri, yerler_rotated):
+                        eski = (kayit.nobet_yeri or "").strip()
+                        yeni = (yeni_yer or "").strip()
+                        if eski != yeni:
+                            kayit.nobet_yeri = yeni
+                            degisen += 1
+        
+                # ✅ Rotasyon sonrası: GÜNEY yerlerine erkek önceliği uygula
+                degisen += guney_erkek_onceligi_uygula(grup)
+        
+            return degisen, "OK"
+
+    
+        session = SessionLocal()
+        try:
+            now_dt = datetime.now()
+            today = now_dt.date()
+    
+            # Program uygulanma tarihi (anahtar)
+            program_row = (
+                session.query(NobetDersProgrami.uygulama_tarihi)
+                .order_by(NobetDersProgrami.uygulama_tarihi.desc())
+                .first()
+            )
+            if not program_row:
+                QMessageBox.warning(self, "Uyarı", "Ders programı bulunamadı (NobetDersProgrami boş).")
+                return
+    
+            program_uygulama_tarihi = program_row[0]
+            program_start = program_uygulama_tarihi.date()
+    
+            # İlk değişim pazartesisi: program_start + 7 gün
+            first_change_monday = program_start + timedelta(days=7)
+    
+            # Son pazartesi: bugünün haftasının pazartesisi
+            last_monday = monday_of_week(today)
+    
+            if last_monday < first_change_monday:
+                self.statusBar().showMessage(
+                    f"Henüz geçmiş değişim yok. İlk değişim: {first_change_monday.strftime('%d.%m.%Y')}",
+                    8000
+                )
+                return
+    
+            # İşlenecek pazartesiler listesi
+            mondays = []
+            cur = first_change_monday
+            while cur <= last_monday:
+                mondays.append(cur)
+                cur += timedelta(days=7)
+    
+            toplam_islenen = 0
+            toplam_degisen = 0
+            atlanan = 0
+    
+            # Her pazartesi için sırasıyla uygula
+            for monday in mondays:
+                # Bu monday zaten loglanmış mı?
+                mevcut = (
+                    session.query(NobetDegisimKaydi)
+                    .filter(
+                        func.date(NobetDegisimKaydi.uygulama_tarihi) == func.date(program_uygulama_tarihi),
+                        func.date(NobetDegisimKaydi.uygulama_bitis) == monday  # pazartesi anahtar
+                    )
+                    .first()
+                )
+                if mevcut:
+                    atlanan += 1
+                    continue
+    
+                # 1 hafta rotasyonu uygula
+                degisen, msg = uygula_tek_haftalik_rotasyon(session, program_uygulama_tarihi)
+    
+                # Log yaz (tarih geçmişe dönük monday olarak işlenir)
+                degisim_dt = datetime.combine(monday, datetime.min.time())
+    
+                degisim_log = NobetDegisimKaydi(
+                    uygulama_tarihi=program_uygulama_tarihi,
+                    uygulama_baslangic=degisim_dt,
+                    uygulama_bitis=degisim_dt,
+                    aciklama=(
+                        f"GERİYE DÖNÜK: {monday.strftime('%d.%m.%Y')} Pazartesi değişimi işlendi. "
+                        f"Değişen kayıt: {degisen}."
+                    )
+                )
+                session.add(degisim_log)
+    
+                session.commit()
+    
+                toplam_islenen += 1
+                toplam_degisen += degisen
+    
+            self.statusBar().showMessage(
+                f"✅ Geriye dönük işlem tamam: İşlenen hafta={toplam_islenen}, Atlanan={atlanan}, Değişen kayıt={toplam_degisen}",
+                12000
+            )
+            QMessageBox.information(
+                self,
+                "Geriye Dönük Nöbet Değişimleri",
+                f"Program başlangıcı: {program_start.strftime('%d.%m.%Y')}\n"
+                f"İlk değişim: {first_change_monday.strftime('%d.%m.%Y')}\n"
+                f"Son Pazartesi: {last_monday.strftime('%d.%m.%Y')}\n\n"
+                f"İşlenen hafta sayısı: {toplam_islenen}\n"
+                f"Atlanan (zaten kayıtlı): {atlanan}\n"
+                f"Toplam değişen kayıt: {toplam_degisen}"
+            )
+    
+        except Exception as e:
+            session.rollback()
+            QMessageBox.critical(self, "Hata", f"Geriye dönük değişimler işlenemedi:\n{str(e)}")
+        finally:
+            session.close()
+
