@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Nöbetçi Öğretmen Yönetim Sistemi – Giriş Noktası
-@author:
-    Şenol Irmak
+@author:Şenol Irmak
 """
 
 import sys
